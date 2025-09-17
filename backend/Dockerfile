@@ -3,7 +3,7 @@ FROM golang:1.22-alpine AS builder
 WORKDIR /app
 
 ENV CGO_ENABLED=0
-ENV GOFLAGS="-mod=vendor"
+ENV GOFLAGS="-mod=mod"
 ENV GOCACHE=/go-build-cache
 
 COPY go.mod go.sum ./
