@@ -6,22 +6,62 @@ import (
 	"time"
 
 	"adm-backend/internal/api"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
-// NewMux assembles the HTTP handlers for the ADM backend.
-func NewMux(adminHandler *api.AdminHandler, allowedOrigins []string) http.Handler {
-	mux := http.NewServeMux()
+// NewRouter assembles the HTTP handlers for the ADM backend using chi.
+func NewRouter(adminHandler *api.AdminHandler, allowedOrigins []string) http.Handler {
+	r := chi.NewRouter()
 
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	cleanOrigins := sanitizeOrigins(allowedOrigins)
+	corsOptions := cors.Options{
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-User-Login"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}
+
+	if len(cleanOrigins) == 0 {
+		corsOptions.AllowedOrigins = []string{"http://localhost:8080", "http://localhost:8081"}
+	} else if containsWildcard(cleanOrigins) {
+		corsOptions.AllowOriginFunc = func(_ *http.Request, _ string) bool { return true }
+	} else {
+		corsOptions.AllowedOrigins = cleanOrigins
+	}
+
+	r.Use(cors.Handler(corsOptions))
+
+	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status": "ok"}`))
 	})
 
-	api.RegisterStudentRoutes(mux)
-	api.RegisterAdminRoutes(mux, adminHandler)
+	r.Route("/student", func(sr chi.Router) {
+		api.RegisterStudentRoutes(sr)
+	})
 
-	return withCORS(mux, allowedOrigins)
+	r.Route("/admin", func(ar chi.Router) {
+		api.RegisterAdminRoutes(ar, adminHandler)
+	})
+
+	return r
 }
 
 // NewHTTPServer returns an http.Server instance configured with sensible timeouts.
@@ -36,68 +76,22 @@ func NewHTTPServer(addr string, handler http.Handler) *http.Server {
 	}
 }
 
-func withCORS(next http.Handler, origins []string) http.Handler {
-	allowed := make(map[string]struct{})
-	allowAll := false
+func sanitizeOrigins(origins []string) []string {
+	cleaned := make([]string, 0, len(origins))
 	for _, origin := range origins {
 		trimmed := strings.TrimSpace(origin)
-		if trimmed == "" {
-			continue
+		if trimmed != "" {
+			cleaned = append(cleaned, trimmed)
 		}
-		if trimmed == "*" {
-			allowAll = true
-		}
-		allowed[trimmed] = struct{}{}
 	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := r.Header.Get("Origin")
-		if origin != "" && (allowAll || hasOrigin(allowed, origin)) {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Vary", "Origin")
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS")
-
-			if r.Method == http.MethodOptions {
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
-		} else if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+	return cleaned
 }
 
-func hasOrigin(set map[string]struct{}, origin string) bool {
-	if _, ok := set[origin]; ok {
-		return true
-	}
-
-	// Handle variations like trailing slash removal.
-	trimmed := strings.TrimRight(origin, "/")
-	if trimmed != origin {
-		if _, ok := set[trimmed]; ok {
+func containsWildcard(origins []string) bool {
+	for _, origin := range origins {
+		if origin == "*" {
 			return true
 		}
 	}
-
-	// Support local loopback equivalence between localhost and 127.0.0.1
-	if strings.HasPrefix(origin, "http://127.0.0.1") {
-		candidate := strings.Replace(origin, "127.0.0.1", "localhost", 1)
-		if _, ok := set[candidate]; ok {
-			return true
-		}
-	}
-	if strings.HasPrefix(origin, "http://localhost") {
-		candidate := strings.Replace(origin, "localhost", "127.0.0.1", 1)
-		if _, ok := set[candidate]; ok {
-			return true
-		}
-	}
-
 	return false
 }

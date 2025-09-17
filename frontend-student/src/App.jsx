@@ -55,12 +55,51 @@ export default function App() {
   });
 
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', margin: '3rem auto', maxWidth: '40rem' }}>
-      <h1>Administrative Session</h1>
-      <p>This is a placeholder student interface. Replace with session dashboard.</p>
-      {isLoading && <p>Checking backend health…</p>}
-      {isError && <p role="alert">Backend unreachable.</p>}
-      {data && <p>Backend status: {data.status}</p>}
-    </main>
+    <div className="pb-module theme-dark">
+      <div className="pb-module__viewport pb-module__viewport--narrow">
+        <header className="pb-header">
+          <h1 className="pb-header__title">Administrative Session</h1>
+          <p className="pb-header__subtitle">
+            This is a placeholder student interface. Replace with session dashboard content.
+          </p>
+        </header>
+
+        <section className="pb-section">
+          <div className="pb-card pb-card--center">
+            <div className="pb-card__header">
+              <h2 className="pb-card__title">Backend health</h2>
+              <p className="pb-card__subtitle">Connectivity check with the ADM API.</p>
+            </div>
+
+            {isLoading && <p className="pb-message pb-message--muted">Checking backend health…</p>}
+            {isError && (
+              <p role="alert" className="pb-message pb-message--error">
+                Backend unreachable.
+              </p>
+            )}
+            {data && (
+              <div className="pb-badge-group">
+                <span className={getStatusChipClass(data.status)}>Status: {data.status}</span>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
   );
+}
+
+function getStatusChipClass(status) {
+  if (!status) return 'pb-chip';
+  const normalized = status.toLowerCase();
+  if (normalized.includes('ok') || normalized.includes('up')) {
+    return 'pb-chip pb-chip--active';
+  }
+  if (normalized.includes('warn')) {
+    return 'pb-chip pb-chip--draft';
+  }
+  if (normalized.includes('down') || normalized.includes('error')) {
+    return 'pb-chip pb-chip--archived';
+  }
+  return 'pb-chip';
 }

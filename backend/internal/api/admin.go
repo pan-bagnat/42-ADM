@@ -13,6 +13,8 @@ import (
 	"adm-backend/internal/ids"
 	"adm-backend/internal/panbagnat"
 	"adm-backend/internal/store"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type AdminHandler struct {
@@ -46,18 +48,10 @@ type createSessionResponse struct {
 	Session sessionResponse `json:"session"`
 }
 
-// RegisterAdminRoutes declares the admin-facing HTTP endpoints.
-func RegisterAdminRoutes(mux *http.ServeMux, handler *AdminHandler) {
-	mux.HandleFunc("/admin/sessions", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handler.handleListSessions(w, r)
-		case http.MethodPost:
-			handler.handleCreateSession(w, r)
-		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+// RegisterAdminRoutes declares the admin-facing HTTP endpoints using a chi router.
+func RegisterAdminRoutes(r chi.Router, handler *AdminHandler) {
+	r.Get("/sessions", handler.handleListSessions)
+	r.Post("/sessions", handler.handleCreateSession)
 }
 
 func (h *AdminHandler) handleListSessions(w http.ResponseWriter, r *http.Request) {

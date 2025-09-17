@@ -127,108 +127,144 @@ export default function App() {
   );
 
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', margin: '3rem auto', maxWidth: '70rem', padding: '0 1rem' }}>
-      <header style={{ marginBottom: '2rem' }}>
-        <h1>ADM Admin Dashboard</h1>
-        <p>Manage annual administrative sessions and track student progress.</p>
-      </header>
+    <div className="pb-module theme-dark">
+      <div className="pb-module__viewport">
+        <header className="pb-header">
+          <h1 className="pb-header__title">ADM Admin Dashboard</h1>
+          <p className="pb-header__subtitle">Manage annual administrative sessions and track student progress.</p>
+        </header>
 
-      <section style={{ marginBottom: '3rem' }}>
-        <h2>Create a New ADM Session</h2>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.75rem', maxWidth: '32rem' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span>Label (optional)</span>
-            <input
-              type="text"
-              placeholder="ADM 2025"
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-            />
-          </label>
+        <section className="pb-section">
+          <div className="pb-card">
+            <div className="pb-card__header">
+              <h2 className="pb-card__title">Create a New ADM Session</h2>
+              <p className="pb-card__subtitle">Define the timeframe and publish it when you are ready.</p>
+            </div>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span>Start date</span>
-            <input
-              type="datetime-local"
-              required
-              value={startAt}
-              onChange={(event) => setStartAt(event.target.value)}
-            />
-          </label>
+            <form onSubmit={handleSubmit} className="pb-form">
+              <div className="pb-field">
+                <label className="pb-label" htmlFor="session-label">
+                  Label (optional)
+                </label>
+                <input
+                  id="session-label"
+                  className="pb-input"
+                  type="text"
+                  placeholder="ADM 2025"
+                  value={label}
+                  onChange={(event) => setLabel(event.target.value)}
+                />
+              </div>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span>End date</span>
-            <input
-              type="datetime-local"
-              required
-              value={endAt}
-              onChange={(event) => setEndAt(event.target.value)}
-            />
-          </label>
+              <div className="pb-field">
+                <label className="pb-label" htmlFor="session-start">
+                  Start date
+                </label>
+                <input
+                  id="session-start"
+                  className="pb-input"
+                  type="datetime-local"
+                  required
+                  value={startAt}
+                  onChange={(event) => setStartAt(event.target.value)}
+                />
+              </div>
 
-          <button type="submit" disabled={mutation.isPending} style={{ padding: '0.5rem 1.25rem', cursor: mutation.isPending ? 'wait' : 'pointer' }}>
-            {mutation.isPending ? 'Creating…' : 'Create session'}
-          </button>
+              <div className="pb-field">
+                <label className="pb-label" htmlFor="session-end">
+                  End date
+                </label>
+                <input
+                  id="session-end"
+                  className="pb-input"
+                  type="datetime-local"
+                  required
+                  value={endAt}
+                  onChange={(event) => setEndAt(event.target.value)}
+                />
+              </div>
 
-          {formError && (
-            <p role="alert" style={{ color: '#d32f2f' }}>
-              {formError}
-            </p>
-          )}
-        </form>
-      </section>
+              <button type="submit" className="pb-button" disabled={mutation.isPending}>
+                {mutation.isPending ? 'Creating…' : 'Create session'}
+              </button>
 
-      <section>
-        <h2>Existing Sessions</h2>
-        {isLoading && <p>Loading sessions…</p>}
-        {isError && <p role="alert">Unable to load sessions.</p>}
-        {!isLoading && !isError && sessions.length === 0 && <p>No ADM sessions yet.</p>}
-
-        {!isLoading && !isError && sessions.length > 0 && (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-              <thead>
-                <tr>
-                  <th style={cellStyle}>Label</th>
-                  <th style={cellStyle}>Dates</th>
-                  <th style={cellStyle}>Status</th>
-                  <th style={cellStyle}>Ongoing</th>
-                  <th style={cellStyle}>Progress</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.map((session) => (
-                  <tr key={session.id}>
-                    <td style={cellStyle}>{session.label}</td>
-                    <td style={cellStyle}>
-                      <div>{formatDateTime(session.start_at)}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>to {formatDateTime(session.end_at)}</div>
-                    </td>
-                    <td style={cellStyle}>{session.status}</td>
-                    <td style={cellStyle}>{session.is_ongoing ? 'Yes' : 'No'}</td>
-                    <td style={cellStyle}>
-                      {session.validated_count} / {session.student_count}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              {formError && (
+                <p role="alert" className="pb-message pb-message--error">
+                  {formError}
+                </p>
+              )}
+            </form>
           </div>
-        )}
+        </section>
 
-        {activeSessions.length > 0 && (
-          <p style={{ marginTop: '1rem', color: '#2e7d32' }}>
-            {activeSessions.length} session{activeSessions.length > 1 ? 's are' : ' is'} currently ongoing.
-          </p>
-        )}
-      </section>
-    </main>
+        <section className="pb-section">
+          <div className="pb-card pb-card--table">
+            <div className="pb-card__header">
+              <h2 className="pb-card__title">Existing Sessions</h2>
+              <p className="pb-card__subtitle">Review session dates, status, and publication progress.</p>
+            </div>
+
+            {isLoading && <p className="pb-message pb-message--muted">Loading sessions…</p>}
+            {isError && (
+              <p role="alert" className="pb-message pb-message--error">
+                Unable to load sessions.
+              </p>
+            )}
+            {!isLoading && !isError && sessions.length === 0 && (
+              <p className="pb-empty-state">No ADM sessions yet. Create the first one above.</p>
+            )}
+
+            {!isLoading && !isError && sessions.length > 0 && (
+              <div className="pb-table-wrapper">
+                <table className="pb-table">
+                  <thead>
+                    <tr>
+                      <th>Label</th>
+                      <th>Dates</th>
+                      <th>Status</th>
+                      <th>Ongoing</th>
+                      <th>Progress</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessions.map((session) => (
+                      <tr key={session.id}>
+                        <td>{session.label}</td>
+                        <td>
+                          <div>{formatDateTime(session.start_at)}</div>
+                          <div className="pb-text-muted pb-text-small">to {formatDateTime(session.end_at)}</div>
+                        </td>
+                        <td>
+                          <span className={getStatusChipClass(session.status)}>{session.status}</span>
+                        </td>
+                        <td>{session.is_ongoing ? 'Yes' : 'No'}</td>
+                        <td>
+                          {session.validated_count} / {session.student_count}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {activeSessions.length > 0 && (
+              <p className="pb-message pb-message--success pb-message--spaced">
+                {activeSessions.length} session{activeSessions.length > 1 ? 's are' : ' is'} currently ongoing.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }
 
-const cellStyle = {
-  borderBottom: '1px solid #ddd',
-  padding: '0.75rem',
-  textAlign: 'left',
-  verticalAlign: 'top'
-};
+function getStatusChipClass(status) {
+  if (!status) return 'pb-chip';
+  const normalized = status.toLowerCase();
+  if (normalized.includes('active')) return 'pb-chip pb-chip--active';
+  if (normalized.includes('draft')) return 'pb-chip pb-chip--draft';
+  if (normalized.includes('archiv')) return 'pb-chip pb-chip--archived';
+  return 'pb-chip';
+}

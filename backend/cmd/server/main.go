@@ -49,8 +49,8 @@ func main() {
 	allowedOrigins := parseAllowedOrigins(os.Getenv("CORS_ORIGIN"))
 
 	addr := ":" + strconv.Itoa(port)
-	mux := server.NewMux(adminHandler, allowedOrigins)
-	httpServer := server.NewHTTPServer(addr, mux)
+	router := server.NewRouter(adminHandler, allowedOrigins)
+	httpServer := server.NewHTTPServer(addr, router)
 
 	shutdownCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
