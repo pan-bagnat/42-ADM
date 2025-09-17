@@ -47,18 +47,26 @@ func NewRouter(adminHandler *api.AdminHandler, allowedOrigins []string) http.Han
 
 	r.Use(cors.Handler(corsOptions))
 
-	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status": "ok"}`))
-	})
+	registerAPIRoutes := func(router chi.Router) {
+		router.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"status": "ok"}`))
+		})
 
-	r.Route("/student", func(sr chi.Router) {
-		api.RegisterStudentRoutes(sr)
-	})
+		router.Route("/student", func(sr chi.Router) {
+			api.RegisterStudentRoutes(sr)
+		})
 
-	r.Route("/admin", func(ar chi.Router) {
-		api.RegisterAdminRoutes(ar, adminHandler)
+		router.Route("/admin", func(ar chi.Router) {
+			api.RegisterAdminRoutes(ar, adminHandler)
+		})
+	}
+
+	registerAPIRoutes(r)
+
+	r.Route("/api", func(ar chi.Router) {
+		registerAPIRoutes(ar)
 	})
 
 	return r
@@ -94,4 +102,46 @@ func containsWildcard(origins []string) bool {
 		}
 	}
 	return false
+}
+
+// WithBasePath optionally strips a configured base path before forwarding the request.
+func WithBasePath(next http.Handler, basePath string) http.Handler {
+	clean := sanitizeBasePath(basePath)
+	if clean == "" || clean == "/" {
+		return next
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if !strings.HasPrefix(path, clean) {
+			http.NotFound(w, r)
+			return
+		}
+
+		trimmed := path[len(clean):]
+		if trimmed == "" {
+			trimmed = "/"
+		} else if !strings.HasPrefix(trimmed, "/") {
+			trimmed = "/" + trimmed
+		}
+
+		clone := r.Clone(r.Context())
+		clone.URL.Path = trimmed
+		clone.URL.RawPath = trimmed
+		next.ServeHTTP(w, clone)
+	})
+}
+
+func sanitizeBasePath(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	if !strings.HasPrefix(trimmed, "/") {
+		trimmed = "/" + trimmed
+	}
+	if trimmed != "/" {
+		trimmed = strings.TrimRight(trimmed, "/")
+	}
+	return trimmed
 }

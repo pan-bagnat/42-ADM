@@ -50,7 +50,8 @@ func main() {
 
 	addr := ":" + strconv.Itoa(port)
 	router := server.NewRouter(adminHandler, allowedOrigins)
-	httpServer := server.NewHTTPServer(addr, router)
+	handler := server.WithBasePath(router, os.Getenv("BASE_PATH"))
+	httpServer := server.NewHTTPServer(addr, handler)
 
 	shutdownCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
