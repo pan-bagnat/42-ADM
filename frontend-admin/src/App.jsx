@@ -5,16 +5,41 @@ import axios from 'axios';
 const API_BASE = resolveBackendBase();
 
 function resolveBackendBase() {
-  const explicit = import.meta.env.VITE_BACKEND_URL;
-  if (explicit) return explicit;
+  const explicit = (import.meta.env.VITE_BACKEND_URL ?? '').trim();
+  if (explicit) {
+    if (/^https?:\/\//i.test(explicit)) {
+      return stripTrailingSlash(explicit);
+    }
 
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location;
-    const port = import.meta.env.VITE_BACKEND_PORT ?? '3000';
-    return `${protocol}//${hostname}:${port}`;
+    if (typeof window !== 'undefined') {
+      try {
+        const resolved = new URL(explicit, window.location.href);
+        return stripTrailingSlash(resolved.toString());
+      } catch {
+        return stripTrailingSlash(explicit);
+      }
+    }
+
+    return stripTrailingSlash(explicit);
   }
 
-  return 'http://localhost:3000';
+  if (typeof window !== 'undefined') {
+    const baseUrl = import.meta.env.BASE_URL ?? '/';
+    try {
+      const publicBase = new URL(baseUrl, window.location.href);
+      const apiUrl = new URL('./api/', publicBase);
+      return stripTrailingSlash(apiUrl.toString());
+    } catch {
+      return stripTrailingSlash(baseUrl);
+    }
+  }
+
+  return 'http://backend:3000';
+}
+
+function stripTrailingSlash(value) {
+  if (value === '') return '';
+  return value.endsWith('/') ? value.slice(0, -1) : value;
 }
 
 const fetchSessions = async () => {

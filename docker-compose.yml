@@ -5,8 +5,8 @@ services:
       POSTGRES_DB: adm
       POSTGRES_USER: adm
       POSTGRES_PASSWORD: adm
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -16,21 +16,34 @@ services:
     environment:
       DATABASE_URL: postgres://adm:adm@db:5432/adm?sslmode=disable
       PORT: 3000
-      CORS_ORIGIN: http://localhost:8080
+      CORS_ORIGIN: http://localhost:8080,http://localhost:8081
       PAN_BAGNAT_API_BASE_URL: http://localhost
     depends_on:
       - db
     expose:
       - "3000"
 
-  proxy:
+  admin-ui:
     build:
-      context: .
-      dockerfile: nginx/Dockerfile
+      context: ./frontend-admin
+      args:
+        VITE_BACKEND_URL: ./api
+        VITE_BASE_PATH: ./
     depends_on:
       - backend
-    ports:
-      - "8080:80"
+    expose:
+      - "80"
+
+  student-ui:
+    build:
+      context: ./frontend-student
+      args:
+        VITE_BACKEND_URL: ./api
+        VITE_BASE_PATH: ./
+    depends_on:
+      - backend
+    expose:
+      - "80"
 
 volumes:
   db-data:
